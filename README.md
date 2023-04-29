@@ -1,5 +1,5 @@
-# preact-archiveteam-tracker
-i rewrote the archiveteam tracker
+# preact archiveteam tracker
+i rewrote the archiveteam tracker. preview for the imgur tracker at https://easrng.github.io/preact-archiveteam-tracker/imgur-demo.html, compare with https://tracker.archiveteam.org/imgur/. there shouldn't be any visible differences.
 
 ## changes
  - remove jquery
