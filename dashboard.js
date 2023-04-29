@@ -173,7 +173,7 @@
                   .toUpperCase()
                   .replace(/\.00$/, "")}
               </span>
-              <span class="unit">todo</span>
+              <span class="unit">to do</span>
             </td>
           </tr>
         </tbody>
