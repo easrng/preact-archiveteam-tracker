@@ -62,49 +62,6 @@
     this.data.push(options);
   };
 
-  function makeEmpty(el) {
-    while (el.firstChild) {
-      el.removeChild(el.firstChild);
-    }
-  }
-
-  function makeTD() {
-    let td, span, span2;
-    td = document.createElement("td");
-    switch (arguments[0]) {
-      case "legend":
-        span = document.createElement("span");
-        span2 = document.createElement("span");
-        span2.innerHTML = "&#8226;";
-        span2.id = "legend-" + arguments[1];
-        span.appendChild(span2);
-        span.className = "text";
-        span.appendChild(document.createTextNode(" " + arguments[1]));
-        td.appendChild(span);
-        break;
-
-      case "text":
-        span = document.createElement("span");
-        span.className = "text";
-        span.appendChild(document.createTextNode(arguments[1]));
-        td.appendChild(span);
-        break;
-
-      case "num":
-        td.className = "num";
-        span = document.createElement("span");
-        span.className = "value";
-        span.appendChild(document.createTextNode(arguments[1]));
-        td.appendChild(span);
-        span = document.createElement("span");
-        span.className = "unit";
-        span.appendChild(document.createTextNode(arguments[2]));
-        td.appendChild(span);
-        break;
-    }
-    return td;
-  }
-
   window.addEventListener("hashchange", function () {
     updateChart();
     redrawStats();
@@ -112,8 +69,8 @@
 
   const makeNum = ([value, unit], append) =>
     html`<td class="num">
-      <span class="value">${value}</span
-      ><span class="unit">${unit + (append ? append : "")}</span>
+      <span class="value">${value}</span>
+      <span class="unit">${unit + (append ? append : "")}</span>
     </td>`;
   function StatsTable() {
     const showAll = ("" + location.hash).match("show-all");
@@ -250,11 +207,12 @@
 
   let firstRedraw = true;
   function redrawStats() {
+    const left = document.getElementById("left")
     if (firstRedraw) {
-      document.getElementById("left").textContent = "";
+      left.textContent = "";
       firstRedraw = false;
     }
-    preact.render(html`<${StatsTable} />`, document.getElementById("left"));
+    preact.render(html`<${StatsTable} />`, left);
     if (stats.stats && stats.stats.queues) {
       const kvPair = ([k, v]) =>
         html`<div key="${k}">${k}: <span>${v}</span></div>`;
@@ -378,11 +336,8 @@
   }
 
   function handleDownloaderClick(evt) {
-    let tr = evt.target;
-    while (tr && tr.nodeName != "TR" && tr.parentNode) {
-      tr = tr.parentNode;
-    }
-    if (tr && tr.nodeName == "TR" && tr.dataset.downloader) {
+    let tr = evt.target.closest("tr")
+    if (tr && tr.dataset.downloader) {
       let downloader = tr.dataset.downloader;
       if (downloaderSeries[downloader]) {
         let series = downloaderSeries[downloader];
@@ -426,61 +381,63 @@
   }
 
   function addLog(msg) {
-    let tbody, tr;
-    tbody = document.getElementById("log");
-
-    tr = document.createElement("tr");
-    tr.className = [
-      msg.user_agent && msg.user_agent.match(/Warrior$/)
-        ? "warrior"
-        : undefined,
-      msg.is_duplicate && msg.items.length === 1 ? "dup" : undefined,
-    ]
-      .filter((className) => className !== undefined)
-      .join(" ");
-    let downloaderTd = makeTD("text", msg.downloader);
-    //var itemTextTd = makeTD('text', msg.items.length > 1 ? (msg.move_items.length !== msg.items.length ? (msg.move_items.length + '/') : '') + msg.items.length + ' items' : msg.item);
-    //var itemTextTd = makeTD('text', msg.items.length > 1 ? msg.move_items.length + '/' + msg.items.length + ' items' + (msg.move_items.length !== msg.items.length ? ' (-' + (msg.items.length - msg.move_items.length) + ')' : '') : msg.item);
-    let itemTextTd = makeTD(
-      "text",
-      msg.items.length > 1
-        ? msg.items.length +
-            " items" +
-            (msg.move_items.length !== msg.items.length
-              ? " (" + (msg.items.length - msg.move_items.length) + " dupes)"
-              : "")
-        : msg.item
+    const log = document.getElementById("log");
+    const newRow = document.createDocumentFragment();
+    preact.render(
+      html`<tr
+        class=${[
+          msg.user_agent && msg.user_agent.match(/Warrior$/)
+            ? "warrior"
+            : undefined,
+          msg.is_duplicate && msg.items.length === 1 ? "dup" : undefined,
+        ]
+          .filter((className) => className !== undefined)
+          .join(" ")}
+      >
+        <td
+          class="downloader"
+          title="${(msg.version ? "Version: " + msg.version : "") +
+          (msg.user_agent ? " | User Agent: " + msg.user_agent : "")}}"
+        >
+          <span class="text">${msg.downloader}</span>
+        </td>
+        <td title=${msg.item}>
+          <span class="text">
+            ${msg.items.length > 1
+              ? msg.items.length +
+                " items" +
+                (msg.move_items.length !== msg.items.length
+                  ? " (" +
+                    (msg.items.length - msg.move_items.length) +
+                    " dupes)"
+                  : "")
+              : msg.item}
+          </span>
+        </td>
+        ${makeNum(
+          filesize(msg.bytes, {
+            standard: "iec",
+            unix: false,
+            output: "array",
+          })
+        )}
+      </tr>`,
+      newRow
     );
-    let size = filesize(msg.bytes, {
-      standard: "iec",
-      unix: false,
-      output: "array",
-    });
-    let sizeTd = makeTD("num", size[0], size[1]);
-    downloaderTd.className = "downloader";
-    itemTextTd.title = msg.item;
-    tr.appendChild(downloaderTd);
-    tr.appendChild(itemTextTd);
-    tr.appendChild(sizeTd);
-
-    downloaderTd.title = "";
-
-    if (msg.version) {
-      downloaderTd.title = "Version: " + msg.version;
-    }
-    if (msg.user_agent) {
-      downloaderTd.title += " | User Agent: " + msg.user_agent;
-    }
-
-    tbody.insertBefore(tr, tbody.firstChild);
-
-    while (tbody.childNodes.length > trackerConfig.numberOfLogLines) {
-      tbody.removeChild(tbody.childNodes[trackerConfig.numberOfLogLines]);
+    log.prepend(newRow);
+    for (let child of Array.prototype.slice.call(
+      log.children,
+      trackerConfig.numberOfLogLines
+    )) {
+      child.remove();
     }
   }
 
   function getLogHostURL() {
-    if (document.location.protocol == "http:") {
+    if (
+      document.location.protocol == "http:" &&
+      (typeof isSecureContext !== "boolean" || !isSecureContext)
+    ) {
       return trackerConfig.logHost;
     } else {
       return trackerConfig.sslLogHost;
@@ -712,7 +669,7 @@
 
       let p = document.getElementById("update-status");
       p.style.display = "none";
-      makeEmpty(p);
+      p.textContent = "";
 
       if (mustUpdate.length > 0) {
         mustUpdate.sort();
@@ -778,8 +735,8 @@
     getJSON(trackerConfig.chartsPath, handleCharts);
   });
 
-  const howToHelpCue = document.querySelector("#how-to-help-cue");
-  const howToHelp = document.querySelector("#how-to-help");
+  const howToHelpCue = document.getElementById("how-to-help-cue");
+  const howToHelp = document.getElementById("how-to-help");
   howToHelpCue.addEventListener("click", function (e) {
     e.preventDefault();
     if (typeof howToHelpCue.animate !== "undefined") {
