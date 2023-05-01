@@ -6,7 +6,6 @@ i rewrote the archiveteam tracker. preview for the imgur tracker at https://easr
    - `$(...).click(...)` to `document.querySelector(...).addEventListener("click", ...)`
    - `$.getJSON` to `fetch`
    - `$element.animate` to `element.animate` where supported, gracefully degrading to no animation otherwise
- - switch to preact for the left tables and queuestats to avoid element recreation on every rerender (seems like better perf in limited testing i did, but also means you can actually copy text from them. revolutionary!)
+ - use preact for rendering (for the log i only used it to create new lines to avoid diffing when new lines are added)
  - make show all / show fewer instant
  - `var` to `let`
- - 73.17 kB saved overall
